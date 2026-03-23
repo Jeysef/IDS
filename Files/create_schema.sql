@@ -72,8 +72,7 @@ CREATE TABLE CUSTOMERS
 );
 
 -- Tabulka REGISTERED_CUSTOMERS funguje jako podtyp.
--- Sdílí primární klíč s tabulkou CUSTOMERS, který zde zároveň funguje jako cizí klíč (vazba 1:1).
--- Obsahuje specifické atributy pouze pro registrované zákazníky.
+-- Má stejný primární klíč jako CUSTOMER. Vazba 1 ku 1
 CREATE TABLE REGISTERED_CUSTOMERS
 (
     CUSTOMER_ID       NUMBER PRIMARY KEY REFERENCES CUSTOMERS (ID) ON DELETE CASCADE NOT NULL,
