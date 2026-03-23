@@ -133,3 +133,33 @@ VALUES ('Keychron V6 Max',
         30,
         1);
 
+INSERT INTO PRODUCT_CATEGORIES (PRODUCT_ID, CATEGORY_ID) VALUES (1, 1);
+
+INSERT INTO ADDRESSES (CITY, STREET) VALUES ('Brno', 'Masarykova 10');
+
+INSERT INTO PAYMENT_SOURCES (ACCOUNT, TYPE) VALUES ('123456789/0100', 'Bankovní převod');
+
+INSERT INTO CUSTOMERS (ID) VALUES (1);
+
+INSERT INTO REGISTERED_CUSTOMERS (CUSTOMER_ID, NAME, EMAIL, PHONE, PASSWORD, ADDRESS_ID, PAYMENT_SOURCE_ID)
+VALUES (1, 'Jan Novak', 'jan.novak@email.cz', '+420123456789', 'hashed_pwd_123', 1, 1);
+
+COMMIT;
+
+-- ==========================================
+-- TESTOVÁNÍ CONSTRAINTS (Záměrné chyby)
+-- ==========================================
+
+
+-- Test 1: chybí bankovní kód (the /0000 part)
+-- Expected Error: XMICHAJ00.CHK_BANK_ACCOUNT: check constraint (...) violated
+-- INSERT INTO PAYMENT_SOURCES (ACCOUNT, TYPE)
+-- VALUES ('123456789', 'Bank Transfer');
+
+-- Test 2: Obsahuje písmena místo číslic
+-- INSERT INTO PAYMENT_SOURCES (ACCOUNT, TYPE)
+-- VALUES ('ABC-12345/0100', 'Credit Card');
+
+-- Test 3: Dlouhý prefix
+-- INSERT INTO PAYMENT_SOURCES (ACCOUNT, TYPE)
+-- VALUES ('1234567-123456/0100', 'Bank Transfer');
