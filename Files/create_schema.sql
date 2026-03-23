@@ -41,7 +41,7 @@ CREATE TABLE PAYMENT_SOURCES
     -- Added a CHECK constraint to ensure valid Czech bank account format:
     -- [optional 2-6 digit prefix -] 2-10 digit account number / 4 digit bank code
     ACCOUNT VARCHAR2(255) NOT NULL
-            CONSTRAINT CHK_BANK_ACCOUNT
+        CONSTRAINT CHK_BANK_ACCOUNT
             CHECK (REGEXP_LIKE(ACCOUNT, '^([0-9]{2,6}-)?[0-9]{2,10}/[0-9]{4}$')),
     TYPE    VARCHAR2(255) NOT NULL
 );
@@ -111,16 +111,25 @@ CREATE TABLE ORDER_ITEMS
 
 -- ================ MOCK DATA INSERT ================
 
-INSERT INTO  CATEGORIES (NAME) VALUES ('Klávesnoce');
-INSERT INTO  CATEGORIES (NAME) VALUES ('Myší');
-INSERT INTO  CATEGORIES (NAME) VALUES ('Notebooky');
-INSERT INTO  CATEGORIES (NAME) VALUES ('Monitory');
+INSERT INTO CATEGORIES (NAME)
+VALUES ('Klávesnoce');
+INSERT INTO CATEGORIES (NAME)
+VALUES ('Myší');
+INSERT INTO CATEGORIES (NAME)
+VALUES ('Notebooky');
+INSERT INTO CATEGORIES (NAME)
+VALUES ('Monitory');
 
 
-INSERT INTO PRODUCT_STATUSES (NAME) VALUES ('Na skladě');
-INSERT INTO PRODUCT_STATUSES (NAME) VALUES ('Vyprodáno');
+INSERT INTO PRODUCT_STATUSES (NAME)
+VALUES ('Na skladě');
+INSERT INTO PRODUCT_STATUSES (NAME)
+VALUES ('Vyprodáno');
 
-INSERT INTO PRODUCTS (NAME, DESCRIPTION, CURRENT_PRICE, QUANTITY, STATUS_ID) VALUES (
-    'Keychron X60',
+INSERT INTO PRODUCTS (NAME, DESCRIPTION, CURRENT_PRICE, QUANTITY, STATUS_ID)
+VALUES ('Keychron V6 Max',
+        'Herní klávesnice - mechanický spínač Gateron Jupiter Red, bezdrátová, podsvícená, klasické (vysokoprofilové) klávesy, americká lokalizace kláves, bluetooth a radiofrekvenční připojení (2,4GHz), podpora qmk/via firmware, na Li-Pol (dobíjecí akumulátor) baterie, šedá a černá barva, rozměry 3,25 × 44,79 × 14,9 cm (V×Š×H) ',
+        2990,
+        30,
+        1);
 
-                                                                                         )
