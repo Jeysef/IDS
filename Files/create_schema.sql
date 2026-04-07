@@ -227,10 +227,9 @@ COMMIT;
 
 
 -- ==========================================
--- PART 3
+-- PART 3 - MORE DATA
 -- ==========================================
 
--- More data
 -- 1. Rozšíření kategorií
 INSERT INTO CATEGORIES (NAME)
 VALUES ('Sluchátka');
@@ -450,6 +449,10 @@ VALUES (45000, 1, 7, 13); -- RTX 4090
 
 COMMIT;
 
+-- ==========================================
+-- PART 3 - QUERIES
+-- ==========================================
+
 
 -- Nejprodávanější produkty
 CREATE VIEW BEST_SELLING AS
@@ -464,7 +467,7 @@ ORDER BY TOTAL_REVENUE DESC;
 -- Produkty v kategorii myši seřazené jako nejprodávanější
 SELECT *
 FROM BEST_SELLING BS
--- WHERE BS.CATEGORY_NAME = 'Myši'
+WHERE BS.CATEGORY_NAME = 'Myši'
 ORDER BY TOTAL_REVENUE DESC;
 ;
 
