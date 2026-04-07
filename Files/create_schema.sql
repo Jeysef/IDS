@@ -520,3 +520,29 @@ FROM PRODUCTS P
 WHERE P.ID NOT IN (SELECT PRODUCT_ID FROM ORDER_ITEMS)
   AND P.ADDED_AT >= CURRENT_TIMESTAMP - INTERVAL '1' MONTH
 ORDER BY P.ADDED_AT DESC;
+
+-- Kategorie které mají alespoň jeden produkt na skladě
+SELECT C.NAME
+FROM CATEGORIES C
+WHERE EXISTS (SELECT 1
+              FROM PRODUCT_CATEGORIES PC
+                       JOIN PRODUCTS P ON PC.PRODUCT_ID = P.ID
+              WHERE P.QUANTITY > 0 AND PC.CATEGORY_ID = C.ID);
+
+-- Kategorie které nemají alespoň jeden produkt na skladě
+SELECT C.NAME
+FROM CATEGORIES C
+WHERE NOT EXISTS (SELECT 1
+                  FROM PRODUCT_CATEGORIES PC
+                           JOIN PRODUCTS P ON PC.PRODUCT_ID = P.ID
+                  WHERE P.QUANTITY > 0 AND PC.CATEGORY_ID = C.ID);
+
+
+
+
+
+
+
+
+
+
