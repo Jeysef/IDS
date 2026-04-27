@@ -738,9 +738,9 @@ CREATE OR REPLACE PROCEDURE CALCULATE_MONTHLY_STATS(
     error_invalid_date EXCEPTION;
 
     -- Vnitřní proměnné
-    var_revenue PAYMENTS.PRICE%TYPE := 0;
-    var_vat     ORDERS.VAT%TYPE     := 0;
-    var_count   NUMBER              := 0;
+    var_revenue      PAYMENTS.PRICE%TYPE := 0;
+    var_vat          ORDERS.VAT%TYPE     := 0;
+    var_count        NUMBER              := 0;
 
     -- Kurzor pro vnitřní iteraci
     CURSOR cur_orders IS
@@ -892,29 +892,59 @@ FROM USER_TAB_PRIVS_MADE
 WHERE GRANTEE = 'XKASPAD00';
 
 -- zkouška selectu u partnera
-SELECT * FROM XMICHAJ00.ORDER_ITEMS;
-SELECT * FROM XMICHAJ00.CATEGORIES;
+SELECT *
+FROM XMICHAJ00.ORDER_ITEMS;
+SELECT *
+FROM XMICHAJ00.CATEGORIES;
 
 
 -- Materializovaný view pro druhého člena týmu
-CREATE  MATERIALIZED VIEW MV_REVENUE_BY_CATEGORY
-BUILD IMMEDIATE
-REFRESH ON COMMIT
+CREATE MATERIALIZED VIEW MV_REVENUE_BY_CATEGORY
+            BUILD IMMEDIATE
+    REFRESH ON COMMIT
 AS
 SELECT C.NAME AS CATEGORY, SUM(OI.PRICE * OI.QUANTITY) AS TOTAL_REVENUE
 FROM XMICHAJ00.ORDER_ITEMS OI
-JOIN XMICHAJ00.PRODUCT_CATEGORIES PC ON OI.PRODUCT_ID = PC.PRODUCT_ID
-JOIN XMICHAJ00.CATEGORIES C ON PC.CATEGORY_ID = C.ID
-JOIN XMICHAJ00.ORDERS O ON OI.ORDER_ID = O.ID
+         JOIN XMICHAJ00.PRODUCT_CATEGORIES PC ON OI.PRODUCT_ID = PC.PRODUCT_ID
+         JOIN XMICHAJ00.CATEGORIES C ON PC.CATEGORY_ID = C.ID
+         JOIN XMICHAJ00.ORDERS O ON OI.ORDER_ID = O.ID
 GROUP BY C.NAME;
 
 -- Kontrola
-SELECT * FROM MV_REVENUE_BY_CATEGORY;
+SELECT *
+FROM MV_REVENUE_BY_CATEGORY;
 
 -- Přidání dat u 1. člena
 INSERT INTO ORDER_ITEMS (PRICE, QUANTITY, ORDER_ID, PRODUCT_ID)
 VALUES (999, 2, 1, 1);
-COMMIT; -- REFRESH ON COMMIT triggers here
+COMMIT;
+-- REFRESH ON COMMIT triggers here
 
 -- Čtení aktualizovaných dat
-SELECT * FROM MV_REVENUE_BY_CATEGORY;
+SELECT *
+FROM MV_REVENUE_BY_CATEGORY;
+
+
+-- ==========================================
+-- ČÁST 4 - COMPLEX SELECT
+-- ==========================================
+
+-- Klasifikace zákazníků podle celkové útraty
+-- Získá celkovou útratu každého zákazníka a zařadí ho do kategorie Věrný/Stálý/Nový
+WITH CUSTOMER_SPENDING AS (SELECT RC.CUSTOMER_ID,
+                                  RC.NAME,
+                                  COALESCE(SUM(P.PRICE), 0) AS TOTAL_SPENT
+                           FROM REGISTERED_CUSTOMERS RC
+                                    LEFT JOIN ORDERS O ON RC.CUSTOMER_ID = O.REGISTERED_CUSTOMER_ID
+                                    -- status zaplaceno
+                                    LEFT JOIN PAYMENTS P ON O.PAYMENT_ID = P.ID AND P.STATUS_ID = 1
+                           GROUP BY RC.CUSTOMER_ID, RC.NAME)
+SELECT NAME    AS CUSTOMER,
+       TOTAL_SPENT,
+       CASE
+           WHEN TOTAL_SPENT > 50000 THEN 'Věrný'
+           WHEN TOTAL_SPENT > 10000 THEN 'Stálý'
+           ELSE 'Nový'
+           END AS CUSTOMER_CATEGORY
+FROM CUSTOMER_SPENDING
+ORDER BY TOTAL_SPENT DESC;
