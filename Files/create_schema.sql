@@ -617,3 +617,9 @@ FROM ORDERS O JOIN ORDER_STATUSES OS on O.STATUS_ID = OS.ID JOIN PAYMENTS P on O
 WHERE P.TRANSACTION_ID = 'TXN-444555666';
 
 -- 2,Vyřizuje se,1,Zaplaceno
+
+
+-- ==========================================
+-- PART 4 - PROCEDURES
+-- ==========================================
+
