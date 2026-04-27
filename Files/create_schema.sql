@@ -552,6 +552,9 @@ FROM PRODUCTS P
 -- ČÁST 4 - TRIGGERY
 -- ==========================================
 
+
+-- ČÁST 4 - TRIGGER 1 DEFINICE TRIGGER_DEDUCT_STOCK
+
 -- Trigger pro snížení naskladněného materiálu při vložení nové koupě
 CREATE OR REPLACE TRIGGER TRIGGER_DEDUCT_STOCK
     BEFORE INSERT
@@ -569,7 +572,7 @@ BEGIN
     END IF;
 END;
 
--- DEMONSTRACE: TRIGGER_DEDUCT_STOCK
+-- ČÁST 4 - TRIGGER 1 DEMONSTRACE TRIGGER_DEDUCT_STOCK
 
 -- Stav před vložením
 SELECT ID, NAME, QUANTITY
@@ -590,6 +593,8 @@ WHERE ID = 1;
 -- VALUES (2990.00, 9999, 1, 1);
 
 
+-- ČÁST 4 - TRIGGER 2 DEFINICE UPDATE_PAYMENT_STATUS
+
 -- updating a PAYMENT's STATUS_ID to "paid" -> update the linked ORDER's status automatically
 CREATE OR REPLACE TRIGGER UPDATE_PAYMENT_STATUS
     AFTER UPDATE OF STATUS_ID
@@ -601,6 +606,8 @@ BEGIN
     SET O.STATUS_ID = 2
     WHERE O.PAYMENT_ID = :NEW.ID;
 END;
+
+-- ČÁST 4 - TRIGGER 2 DEMONSTRACE UPDATE_PAYMENT_STATUS
 
 
 SELECT O.STATUS_ID AS ORDER_STATUS,
@@ -637,12 +644,13 @@ WHERE P.TRANSACTION_ID = 'TXN-444555666';
 -- ČÁST 4 - PROCEDURY
 -- ==========================================
 
+-- ČÁST 4 - PROCEDURA 1 PŘIDÁNÍ_STAVŮ CANCEL_ORDER
 INSERT INTO PAYMENT_STATUSES (NAME)
 VALUES ('Zrušeno');
 INSERT INTO PAYMENT_STATUSES (NAME)
 VALUES ('Zrušeno a vráceno');
 
--- Procedura, která zruší objednávku
+-- ČÁST 4 - PROCEDURA 1 DEFINICE CANCEL_ORDER
 CREATE OR REPLACE PROCEDURE CANCEL_ORDER(ORDER_ID NUMBER)
     IS
     var_order_status   ORDERS.STATUS_ID%TYPE;
@@ -671,6 +679,7 @@ BEGIN
     UPDATE ORDERS O SET O.STATUS_ID = 4 WHERE id = ORDER_ID;
 END;
 
+-- ČÁST 4 - PROCEDURA 1 DEMONSTRACE CANCEL_ORDER
 
 -- Před procedurou zrušení
 SELECT O.ID    AS ORDER_ID,
@@ -707,6 +716,8 @@ WHERE O.ID = 1;
 -- ==========================================
 -- ČÁST 4 - INDEX
 -- ==========================================
+
+-- ČÁST 4 - INDEX IDX_ORDER_ITEMS_PRODUCT_ID
 
 -- Ověření stavu „Před“ (Oracle volí pomalou cestu)
 EXPLAIN PLAN FOR
