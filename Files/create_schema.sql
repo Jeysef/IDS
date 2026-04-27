@@ -549,7 +549,7 @@ FROM PRODUCTS P
 
 
 -- ==========================================
--- PART 4 - TRIGGERS
+-- ČÁST 4 - TRIGGERY
 -- ==========================================
 
 -- Trigger pro snížení naskladněného materiálu při vložení nové koupě
@@ -615,7 +615,7 @@ WHERE P.TRANSACTION_ID = 'TXN-444555666';
 
 -- 1,Nová,2,Čeká na platbu
 
--- Set payment status to "Zaplaceno"
+-- Nastavit stav platby na "Zaplaceno"
 UPDATE PAYMENTS
 SET STATUS_ID = 1
 WHERE TRANSACTION_ID = 'TXN-444555666';
@@ -634,7 +634,7 @@ WHERE P.TRANSACTION_ID = 'TXN-444555666';
 
 
 -- ==========================================
--- PART 4 - PROCEDURES
+-- ČÁST 4 - PROCEDURY
 -- ==========================================
 
 INSERT INTO PAYMENT_STATUSES (NAME)
@@ -642,7 +642,7 @@ VALUES ('Zrušeno');
 INSERT INTO PAYMENT_STATUSES (NAME)
 VALUES ('Zrušeno a vráceno');
 
--- A procedure that cancels an order
+-- Procedura, která zruší objednávku
 CREATE OR REPLACE PROCEDURE CANCEL_ORDER(ORDER_ID NUMBER)
     IS
     var_order_status ORDERS.STATUS_ID%TYPE;
@@ -650,19 +650,19 @@ CREATE OR REPLACE PROCEDURE CANCEL_ORDER(ORDER_ID NUMBER)
 BEGIN
     SELECT O.STATUS_ID INTO var_order_status FROM ORDERS O WHERE O.ID = ORDER_ID;
 
--- if sent, cannot be canceled
+-- pokud je odesláno, nelze zrušit
     IF var_order_status = 3 THEN
-        RAISE_APPLICATION_ERROR(-20002, 'Cannot cancel: Order has already been shipped.');
+        RAISE_APPLICATION_ERROR(-20002, 'Nelze zrušit: Objednávka již byla odeslána.');
     END IF;
 
     SELECT P.STATUS_ID INTO var_payment_status FROM PAYMENTS P JOIN ORDERS O on P.ID = O.PAYMENT_ID WHERE O.ID = ORDER_ID;
--- If the order was not paid, set state to cancel
+-- Pokud objednávka nebyla zaplacena, nastavit stav na zrušeno
     IF var_payment_status = 1 THEN
         UPDATE payments SET status_id = 3 WHERE id = var_payment_status;
--- If the order was paid, set state to refund
+-- Pokud byla objednávka zaplacena, nastavit stav na vrácení peněz (refund)
     ELSE
         UPDATE payments SET status_id = 4 WHERE id = var_payment_status;
     END IF;
--- Set order status to "Zrušeno"
+-- Nastavit stav objednávky na "Zrušeno"
     UPDATE ORDERS O SET O.STATUS_ID  = 4 WHERE id = ORDER_ID;
 END;
