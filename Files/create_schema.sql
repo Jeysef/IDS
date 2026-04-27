@@ -12,6 +12,7 @@
 -- DROP TABLE PRODUCTS CASCADE CONSTRAINTS;
 -- DROP TABLE PRODUCT_STATUSES CASCADE CONSTRAINTS;
 -- DROP TABLE CATEGORIES CASCADE CONSTRAINTS;
+-- DROP TABLE MONTHLY_STATS CASCADE CONSTRAINTS;
 
 
 CREATE TABLE CATEGORIES
@@ -711,6 +712,115 @@ FROM ORDERS O
          JOIN PAYMENTS P ON O.PAYMENT_ID = P.ID
          JOIN PAYMENT_STATUSES PS on P.STATUS_ID = PS.ID
 WHERE O.ID = 1;
+
+
+-- ČÁST 4 - PROCEDURA 2 MONTHLY_STATS
+
+-- Nová tabulka, kterou využívá následující procedura
+CREATE TABLE MONTHLY_STATS
+(
+    STAT_YEAR     NUMBER(4, 0)                        NOT NULL,
+    STAT_MONTH    NUMBER(2, 0)                        NOT NULL,
+    TOTAL_REVENUE DECIMAL(15, 2)                      NOT NULL,
+    TOTAL_VAT     DECIMAL(15, 2)                      NOT NULL,
+    ORDER_COUNT   NUMBER(10, 0)                       NOT NULL,
+    CALCULATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    CONSTRAINT PK_MONTHLY_STATS PRIMARY KEY (STAT_YEAR, STAT_MONTH)
+);
+
+-- Procedura, která vygeneruje monthly stats a uloží je do tabulky
+CREATE OR REPLACE PROCEDURE CALCULATE_MONTHLY_STATS(
+    in_month IN NUMBER,
+    in_year IN NUMBER
+) IS
+    -- Vlastní výjimka pro špatný vstup
+    error_invalid_date EXCEPTION;
+
+    -- Vnitřní proměnné
+    var_revenue PAYMENTS.PRICE%TYPE := 0;
+    var_vat     ORDERS.VAT%TYPE     := 0;
+    var_count   NUMBER              := 0;
+
+    -- Kurzor pro vnitřní iteraci
+    CURSOR cur_orders IS
+        SELECT P.PRICE, O.VAT
+        FROM ORDERS O
+                 JOIN PAYMENTS P ON O.PAYMENT_ID = P.ID
+        WHERE EXTRACT(MONTH FROM O.CREATED_AT) = in_month
+          AND EXTRACT(YEAR FROM O.CREATED_AT) = in_year
+          AND P.STATUS_ID = 1;
+
+    -- Proměnná pro načítání z kurzoru
+    var_order_record cur_orders%ROWTYPE;
+
+BEGIN
+    -- Validace vstupu
+    IF in_month < 1 OR in_month > 12 THEN
+        RAISE error_invalid_date;
+    END IF;
+
+    -- 3. Zpracování kurzoru čistě na straně databáze
+    OPEN cur_orders;
+    LOOP
+        FETCH cur_orders INTO var_order_record;
+        EXIT WHEN cur_orders%NOTFOUND;
+
+        -- Přidáme hodnoty
+        var_count := var_count + 1;
+        var_revenue := var_revenue + var_order_record.PRICE;
+        var_vat := var_vat + (var_order_record.PRICE * (var_order_record.VAT / 100));
+    END LOOP;
+    CLOSE cur_orders;
+
+    -- Uložení vypočítaných dat do tabulky
+
+    -- Smažeme stará překrývající se data
+    DELETE FROM MONTHLY_STATS WHERE STAT_YEAR = in_year AND STAT_MONTH = in_month;
+
+    -- Vložíme nové výsledky
+    INSERT INTO MONTHLY_STATS (STAT_YEAR, STAT_MONTH, TOTAL_REVENUE, TOTAL_VAT, ORDER_COUNT)
+    VALUES (in_year, in_month, var_revenue, var_vat, var_count);
+
+    COMMIT;
+
+EXCEPTION
+    WHEN error_invalid_date THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Neplatný měsíc (1-12)');
+    WHEN OTHERS THEN
+        IF cur_orders%ISOPEN THEN
+            CLOSE cur_orders;
+        END IF;
+        ROLLBACK; -- Vrátíme změny v případě chyby
+        RAISE_APPLICATION_ERROR(-20005, 'Neočekávaná chyba: ' || SQLERRM);
+END;
+
+-- ČÁST 4 - PROCEDURA 2 DEMONSTRACE MONTHLY_STATS
+
+DECLARE
+    var_current_month NUMBER;
+    var_current_year  NUMBER;
+BEGIN
+    -- Získání aktuálního data
+    var_current_month := EXTRACT(MONTH FROM CURRENT_TIMESTAMP);
+    var_current_year := EXTRACT(YEAR FROM CURRENT_TIMESTAMP);
+
+    -- Spuštění procedury
+    CALCULATE_MONTHLY_STATS(
+            in_month => var_current_month,
+            in_year => var_current_year
+    );
+END;
+
+-- Zobrazení uložených výsledků
+SELECT STAT_YEAR     AS "Rok",
+       STAT_MONTH    AS "Měsíc",
+       ORDER_COUNT   AS "Počet objednávek",
+       TOTAL_REVENUE AS "Celkový obrat",
+       TOTAL_VAT     AS "Z toho DPH",
+       CALCULATED_AT AS "Ze dne"
+FROM MONTHLY_STATS
+ORDER BY STAT_YEAR DESC, STAT_MONTH DESC;
 
 
 -- ==========================================
