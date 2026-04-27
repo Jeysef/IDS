@@ -548,8 +548,43 @@ FROM PRODUCTS P
          JOIN PRODUCT_STATUSES PS ON PS.ID = P.STATUS_ID;
 
 
+-- ==========================================
+-- PART 4 - TRIGGERS
+-- ==========================================
 
+-- Trigger pro snížení naskladněného materiálu při vložení nové koupě
+CREATE OR REPLACE TRIGGER TRIGGER_DEDUCT_STOCK
+    BEFORE INSERT
+    ON ORDER_ITEMS
+    FOR EACH ROW
+DECLARE
+    var_current_stock PRODUCTS.QUANTITY%type;
+BEGIN
+    SELECT QUANTITY INTO var_current_stock FROM PRODUCTS WHERE ID = :NEW.PRODUCT_ID;
 
+    IF var_current_stock < :NEW.QUANTITY THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Nedostatek zboží na skladě');
+    ELSE
+        UPDATE PRODUCTS SET QUANTITY = QUANTITY - :NEW.QUANTITY WHERE ID = :NEW.PRODUCT_ID;
+    END IF;
+END;
 
+-- DEMONSTRACE: TRIGGER_DEDUCT_STOCK
 
+-- Stav před vložením
+SELECT ID, NAME, QUANTITY
+FROM PRODUCTS
+WHERE ID = 1;
 
+-- Vložení nákupu
+INSERT INTO ORDER_ITEMS (PRICE, QUANTITY, ORDER_ID, PRODUCT_ID)
+VALUES (2990.00, 2, 1, 1);
+
+-- Stav po vložení
+SELECT ID, NAME, QUANTITY
+FROM PRODUCTS
+WHERE ID = 1;
+
+-- Test porušení podmínky
+-- INSERT INTO ORDER_ITEMS (PRICE, QUANTITY, ORDER_ID, PRODUCT_ID)
+-- VALUES (2990.00, 9999, 1, 1);
