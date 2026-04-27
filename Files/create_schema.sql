@@ -645,7 +645,7 @@ VALUES ('Zrušeno a vráceno');
 -- Procedura, která zruší objednávku
 CREATE OR REPLACE PROCEDURE CANCEL_ORDER(ORDER_ID NUMBER)
     IS
-    var_order_status ORDERS.STATUS_ID%TYPE;
+    var_order_status   ORDERS.STATUS_ID%TYPE;
     var_payment_status PAYMENTS.STATUS_ID%TYPE;
 BEGIN
     SELECT O.STATUS_ID INTO var_order_status FROM ORDERS O WHERE O.ID = ORDER_ID;
@@ -655,7 +655,11 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20002, 'Nelze zrušit: Objednávka již byla odeslána.');
     END IF;
 
-    SELECT P.STATUS_ID INTO var_payment_status FROM PAYMENTS P JOIN ORDERS O on P.ID = O.PAYMENT_ID WHERE O.ID = ORDER_ID;
+    SELECT P.STATUS_ID
+    INTO var_payment_status
+    FROM PAYMENTS P
+             JOIN ORDERS O on P.ID = O.PAYMENT_ID
+    WHERE O.ID = ORDER_ID;
 -- Pokud objednávka nebyla zaplacena, nastavit stav na zrušeno
     IF var_payment_status = 1 THEN
         UPDATE payments SET status_id = 3 WHERE id = var_payment_status;
@@ -664,5 +668,45 @@ BEGIN
         UPDATE payments SET status_id = 4 WHERE id = var_payment_status;
     END IF;
 -- Nastavit stav objednávky na "Zrušeno"
-    UPDATE ORDERS O SET O.STATUS_ID  = 4 WHERE id = ORDER_ID;
+    UPDATE ORDERS O SET O.STATUS_ID = 4 WHERE id = ORDER_ID;
 END;
+
+
+-- ==========================================
+-- ČÁST 4 - INDEX
+-- ==========================================
+
+-- Ověření stavu „Před“ (Oracle volí pomalou cestu)
+EXPLAIN PLAN FOR
+WITH PRODUCT_SOLD_QUANTITY AS (SELECT NAME, PRODUCTS.ID AS PRODUCT_ID, OI.QUANTITY
+                               FROM PRODUCTS
+                                        JOIN ORDER_ITEMS OI on PRODUCTS.ID = OI.PRODUCT_ID)
+SELECT SUM(P.QUANTITY) as PROCUCTS_COUNT, C.NAME as CATEGORY
+FROM PRODUCT_SOLD_QUANTITY P
+         JOIN PRODUCT_CATEGORIES PC on P.PRODUCT_ID = PC.PRODUCT_ID
+         JOIN CATEGORIES C on PC.CATEGORY_ID = C.ID
+GROUP BY C.NAME
+ORDER BY PROCUCTS_COUNT DESC;
+
+-- Zobrazení plánu Před
+SELECT *
+FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+--  Aplikace indexu
+CREATE INDEX IDX_ORDER_ITEMS_PRODUCT_ID ON ORDER_ITEMS (PRODUCT_ID);
+
+--  Ověření stavu Po (Oracle využije index)
+EXPLAIN PLAN FOR
+    WITH PRODUCT_SOLD_QUANTITY AS (SELECT NAME, PRODUCTS.ID AS PRODUCT_ID, OI.QUANTITY
+                               FROM PRODUCTS
+                                        JOIN ORDER_ITEMS OI on PRODUCTS.ID = OI.PRODUCT_ID)
+SELECT SUM(P.QUANTITY) as PROCUCTS_COUNT, C.NAME as CATEGORY
+FROM PRODUCT_SOLD_QUANTITY P
+         JOIN PRODUCT_CATEGORIES PC on P.PRODUCT_ID = PC.PRODUCT_ID
+         JOIN CATEGORIES C on PC.CATEGORY_ID = C.ID
+GROUP BY C.NAME
+ORDER BY PROCUCTS_COUNT DESC;
+
+-- Zobrazení plánu Po
+SELECT *
+FROM TABLE (DBMS_XPLAN.DISPLAY);
