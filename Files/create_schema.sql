@@ -672,6 +672,38 @@ BEGIN
 END;
 
 
+-- Před procedurou zrušení
+SELECT O.ID    AS ORDER_ID,
+       OS.NAME AS ORDER_STATUS,
+       P.ID    AS PAYMENT_ID,
+       PS.NAME AS PAYMENT_STATUS
+FROM ORDERS O
+         JOIN ORDER_STATUSES OS ON O.STATUS_ID = OS.ID
+         JOIN PAYMENTS P ON O.PAYMENT_ID = P.ID
+         JOIN PAYMENT_STATUSES PS on P.STATUS_ID = PS.ID
+WHERE O.ID = 1;
+
+
+-- Spuštění procedury zrušení
+BEGIN
+    -- CANCEL_ORDER(5);
+    -- Error obědnávka 5 už poslána
+    CANCEL_ORDER(3);
+END;
+
+
+-- Po proceduře zrušení
+SELECT O.ID    AS ORDER_ID,
+       OS.NAME AS ORDER_STATUS,
+       P.ID    AS PAYMENT_ID,
+       PS.NAME AS PAYMENT_STATUS
+FROM ORDERS O
+         JOIN ORDER_STATUSES OS ON O.STATUS_ID = OS.ID
+         JOIN PAYMENTS P ON O.PAYMENT_ID = P.ID
+         JOIN PAYMENT_STATUSES PS on P.STATUS_ID = PS.ID
+WHERE O.ID = 1;
+
+
 -- ==========================================
 -- ČÁST 4 - INDEX
 -- ==========================================
@@ -697,7 +729,7 @@ CREATE INDEX IDX_ORDER_ITEMS_PRODUCT_ID ON ORDER_ITEMS (PRODUCT_ID);
 
 --  Ověření stavu Po (Oracle využije index)
 EXPLAIN PLAN FOR
-    WITH PRODUCT_SOLD_QUANTITY AS (SELECT NAME, PRODUCTS.ID AS PRODUCT_ID, OI.QUANTITY
+WITH PRODUCT_SOLD_QUANTITY AS (SELECT NAME, PRODUCTS.ID AS PRODUCT_ID, OI.QUANTITY
                                FROM PRODUCTS
                                         JOIN ORDER_ITEMS OI on PRODUCTS.ID = OI.PRODUCT_ID)
 SELECT SUM(P.QUANTITY) as PROCUCTS_COUNT, C.NAME as CATEGORY
